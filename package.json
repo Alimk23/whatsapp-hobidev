@@ -4,6 +4,7 @@
   "description": "Whatsapp API by Hobi Dev",
   "main": "app.js",
   "scripts": {
+    "multiple": "node app-multiple-device.js",
     "start": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
