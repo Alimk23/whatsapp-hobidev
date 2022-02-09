@@ -14,10 +14,39 @@
           <div class="text-center">
             <h1>Whatsapp API</h1>
             <p>Powered by HobiDev</p>
-            <img src="" alt="QR Code" id="qrcode" />
+            <div class="form-container text-left">
+              <div class="row mt-2">
+                <div class="col-md-3">
+                  <label for="client-id">ID</label>
+                </div>
+                <div class="col-md-9">
+                  <input type="text" id="client-id" class="form-control" placeholder="Masukkan ID" />
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-md-3">
+                  <label for="client-description">Deskripsi</label>
+                </div>
+                <div class="col-md-9">
+                  <textarea rows="3" class="form-control" id="client-description" placeholder="Masukkan Deskripsi"></textarea>
+                </div>
+              </div>
+              <div class="row my-3">
+                <div class="col text-center">
+                  <button class="add-client-btn btn btn-primary">Tambah Client</button>
+                </div>
+              </div>
+            </div>
+            <div class="client-container">
+              <div class="client m-3 d-none">
+                <h3 class="title"></h3>
+                <p class="description"></p>
+                <img src="" alt="QR Code" id="qrcode" />
+                <h3>Logs:</h3>
+                <ul class="logs"></ul>
+              </div>
+            </div>
           </div>
-          <h3>Logs:</h3>
-          <ul class="logs"></ul>
         </div>
       </div>
     </div>
@@ -42,17 +71,65 @@
   <script>
     $(document).ready(function () {
       var socket = io();
-      socket.on('message', function (msg) {
-        $('.logs').append($('<li>').text(msg));
+
+      // ketika tombol tambah diklik
+      $('.add-client-btn').click(function () {
+        var clientid = $('#client-id').val();
+        var clientdescription = $('#client-description').val();
+        var template = $('.client')
+          .first()
+          .clone()
+          .removeClass('d-none')
+          .addClass('d-inline-block ' + clientid);
+        template.find('.title').html(clientid);
+        template.find('.description').html(clientdescription);
+        $('.client-container').append(template);
+
+        socket.emit('create-session', {
+          id: clientid,
+          description: clientdescription,
+        });
       });
-      socket.on('qr', function (src) {
-        $('#qrcode').attr('src', src);
+
+      socket.on('init', function (data) {
+        $('.client-container .client').not(':first').remove();
+        for (var i = 0; i < data.length; i++) {
+          var session = data[i];
+
+          var clientid = session.id;
+          var clientdescription = session.description;
+          var template = $('.client')
+            .first()
+            .clone()
+            .removeClass('d-none')
+            .addClass('d-inline-block ' + clientid);
+          template.find('.title').html(clientid);
+          template.find('.description').html(clientdescription);
+          $('.client-container').append(template);
+          if (session.ready) {
+            $(`.client.${session.id} .logs`).append($('<li>').text('Whatsapp is ready!'));
+          } else {
+            $(`.client.${session.id} .logs`).append($('<li>').text('Connecting...'));
+          }
+        }
       });
-      socket.on('ready', function (src) {
-        $('#qrcode').hide();
+
+      socket.on('remove-session', function (id) {
+        $(`.client.${data.id}`).remove();
       });
-      socket.on('authenticated', function (src) {
-        $('#qrcode').hide();
+
+      socket.on('message', function (data) {
+        $(`.client.${data.id} .logs`).append($('<li>').text(data.text));
+      });
+      socket.on('qr', function (data) {
+        $(`.client.${data.id} #qrcode`).attr('src', data.src);
+        $(`.client.${data.id} #qrcode`).show();
+      });
+      socket.on('ready', function (data) {
+        $(`.client.${data.id} #qrcode`).hide();
+      });
+      socket.on('authenticated', function (data) {
+        $(`.client.${data.id} #qrcode`).hide();
       });
     });
   </script>
